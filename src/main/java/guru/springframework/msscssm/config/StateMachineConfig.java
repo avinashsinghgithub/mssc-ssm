@@ -11,6 +11,7 @@ import org.springframework.statemachine.config.EnableStateMachineFactory;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
+import org.springframework.statemachine.guard.Guard;
 
 import java.util.EnumSet;
 import java.util.Random;
@@ -32,7 +33,7 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<PaymentSta
     @Override
     public void configure(StateMachineTransitionConfigurer<PaymentState, PaymentEvent> transitions) throws Exception {
         transitions.withExternal().source(PaymentState.NEW).target(PaymentState.NEW).event(PaymentEvent.PRE_AUTHORIZE)
-                .action(preAuthAction())
+                .action(preAuthAction()).guard(paymentGuard())
                 .and()
                 .withExternal().source(PaymentState.NEW).target(PaymentState.PRE_AUTH).event(PaymentEvent.PRE_AUTH_APPROVED)
                 .and()
@@ -62,7 +63,11 @@ public class StateMachineConfig extends StateMachineConfigurerAdapter<PaymentSta
             }
         };
     }
-
+    public Guard<PaymentState, PaymentEvent> paymentGuard(){
+        return context -> {
+            return context.getMessageHeader(PaymentServiceImpl.PAYMENT_ID_HEADER) != null;
+        };
+    }
     public Action<PaymentState, PaymentEvent> authAction(){
         return context ->{
             System.out.println("Auth was called");
